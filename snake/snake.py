@@ -51,6 +51,11 @@ class Snake:
         """ Returns the score of the snake. """
         return self.score
 
+    def get_delay(self):
+        """ Returns the delay of the snake's movement.
+        """
+        return self.delay
+
     def next_step(self):
         """ Moves the snake to the next step, and sets the corresponding internal status. In case the snake
             should no longer continue its move, 'alive' flag will be set to False.
@@ -115,14 +120,9 @@ class Snake:
 if __name__ == '__main__':
     kb = KBHit()
     snake = Snake(60, 20)
-    delay = 0.4
-    prev_score = snake.get_score()
     while snake.is_alive():
         if kb.kbhit():
             snake.set_direction_if_legal(kb.getarrow())
         snake.next_step()
         snake.clear_draw()
-        if snake.get_score() > prev_score:
-            delay = delay - (delay * 0.1)
-            prev_score = snake.get_score()
-        time.sleep(delay)
+        time.sleep(snake.get_delay())
