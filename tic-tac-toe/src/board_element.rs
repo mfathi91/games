@@ -22,3 +22,10 @@ impl BoardElement {
         }
     }
 }
+
+pub enum GameStatus {
+    OnGoing,
+    Player1Won,
+    Player2Won,
+    Tie,
+}

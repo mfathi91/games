@@ -2,7 +2,7 @@ extern crate core;
 
 mod board_element;
 
-use crate::board_element::BoardElement;
+use crate::board_element::{BoardElement, GameStatus};
 use std::collections::HashMap;
 use std::io;
 
@@ -25,11 +25,12 @@ fn main() {
         }
 
         board.insert(board_number, player);
-        if let Some(p) = get_winner(&board) {
-            println!("{:?} won!", p);
-            break;
-        }
-        player = player.opposite();
+        match get_game_status(&board) {
+            GameStatus::OnGoing =>     player = player.opposite(),
+            GameStatus::Player1Won => { draw(&board); println!("Player1 won!"); break; },
+            GameStatus::Player2Won => { draw(&board); println!("Player2 won!"); break; },
+            GameStatus::Tie        => { draw(&board); println!("Game tied!"); break; },
+        };
     }
 }
 
@@ -85,14 +86,13 @@ fn read_number(min: i32, max: i32) -> i32 {
     }
 }
 
-
 fn is_occupied(board_number: i32, board: &HashMap<i32, BoardElement>) -> bool {
     *board.get(&board_number).unwrap() != BoardElement::Empty
 }
 
-/// Analyzes the given status of the game, and returns the winner player if the criteria
-/// are met. Otherwise, `None` will be returned.
-fn get_winner(board: &HashMap<i32, BoardElement>) -> Option<BoardElement> {
+/// Analyzes the given status of the game, and indicates if the game should continue, a player
+/// has won, or the game is tie.
+fn get_game_status(board: &HashMap<i32, BoardElement>) -> GameStatus {
     let winner_moves = vec![
         vec![1, 2, 3],
         vec![4, 5, 6],
@@ -104,20 +104,31 @@ fn get_winner(board: &HashMap<i32, BoardElement>) -> Option<BoardElement> {
         vec![3, 5, 7],
     ];
 
+    let mut empty_spot_found: bool = false;
     let mut player_map: HashMap<BoardElement, Vec<i32>> = HashMap::new();
     for (board_number, player) in board {
         if *player != BoardElement::Empty {
             let moves = player_map.entry(*player).or_insert(Vec::new());
             moves.push(*board_number);
+        } else {
+            empty_spot_found = true;
         }
     }
 
-    for (player, moves) in player_map {
-        for winner_move in &winner_moves {
-            if winner_move.iter().all(|wm| moves.contains(wm)) {
-                return Option::Some(player);
+    if !empty_spot_found {
+        return GameStatus::Tie;
+    } else {
+        for (player, moves) in player_map {
+            for winner_move in &winner_moves {
+                if winner_move.iter().all(|wm| moves.contains(wm)) {
+                    if player == BoardElement::Player1 {
+                        return GameStatus::Player1Won;
+                    } else {
+                        return GameStatus::Player2Won;
+                    }
+                }
             }
         }
+        return GameStatus::OnGoing;
     }
-    Option::None
 }
