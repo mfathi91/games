@@ -1,61 +1,70 @@
 extern crate core;
 
-mod player;
+mod board_element;
 
-use crate::player::Player;
+use crate::board_element::BoardElement;
 use std::collections::HashMap;
 use std::io;
 
 fn main() {
-    let mut status: HashMap<i32, String> = HashMap::new();
-    let mut turn = Player::Player1;
+    // Create and initialize the tic-tac-toe board
+    let mut board: HashMap<i32, BoardElement> = HashMap::new();
+    for i in 1..=9 {
+        board.insert(i, BoardElement::Empty);
+    }
+
+    let mut player = BoardElement::Player1;
     loop {
-        println!("{:?}, enter a number between 1 and 9:", turn);
-        let input = read_number();
-        status.insert(input, turn.symbol());
-        draw(&status);
-        if let Some(p) = get_winner(&status) {
+        draw(&board);
+        // Read and validate the input number
+        println!("{:?}, enter a number between 1 and 9:", player);
+        let board_number = read_number(1, 9);
+        if is_occupied(board_number, &board) {
+            println!("The given board number is already occupied");
+            continue;
+        }
+
+        board.insert(board_number, player);
+        if let Some(p) = get_winner(&board) {
             println!("{:?} won!", p);
             break;
         }
-        turn = turn.opposite();
+        player = player.opposite();
     }
 }
 
-fn draw(status: &HashMap<i32, String>) {
+/// Draws the status of the game based on the given parameter. Prior to drawing the status
+/// of the game, clears and resets the console position.
+fn draw(board: &HashMap<i32, BoardElement>) {
     // Clear the terminal
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 
     println!(
         " {} | {} | {} ",
-        unwrap_or_empty(status.get(&1)),
-        unwrap_or_empty(status.get(&2)),
-        unwrap_or_empty(status.get(&3))
+        board.get(&1).unwrap().symbol(),
+        board.get(&2).unwrap().symbol(),
+        board.get(&3).unwrap().symbol()
     );
     println!("---|---|---");
     println!(
         " {} | {} | {} ",
-        unwrap_or_empty(status.get(&4)),
-        unwrap_or_empty(status.get(&5)),
-        unwrap_or_empty(status.get(&6))
+        board.get(&4).unwrap().symbol(),
+        board.get(&5).unwrap().symbol(),
+        board.get(&6).unwrap().symbol()
     );
     println!("---|---|---");
     println!(
         " {} | {} | {} ",
-        unwrap_or_empty(status.get(&7)),
-        unwrap_or_empty(status.get(&8)),
-        unwrap_or_empty(status.get(&9))
+        board.get(&7).unwrap().symbol(),
+        board.get(&8).unwrap().symbol(),
+        board.get(&9).unwrap().symbol()
     );
 }
 
-fn unwrap_or_empty(position: Option<&String>) -> String {
-    match position {
-        Some(symbol) => symbol.to_string(),
-        None => " ".to_string(),
-    }
-}
-
-fn read_number() -> i32 {
+/// Reads an input from user and returns the parsed number. If the attempt for parsing the input to
+/// a number fails or if the number is out of the given boundaries, the user will be asked to
+/// re-enter a valid input.
+fn read_number(min: i32, max: i32) -> i32 {
     loop {
         let mut input = String::new();
         io::stdin()
@@ -68,7 +77,7 @@ fn read_number() -> i32 {
                 continue;
             }
         };
-        if number >= 1 && number <= 9 {
+        if number >= min && number <= max {
             return number;
         } else {
             println!("The given number must be between 1 and 9, try again");
@@ -76,7 +85,14 @@ fn read_number() -> i32 {
     }
 }
 
-fn get_winner(status: &HashMap<i32, String>) -> Option<Player> {
+
+fn is_occupied(board_number: i32, board: &HashMap<i32, BoardElement>) -> bool {
+    *board.get(&board_number).unwrap() != BoardElement::Empty
+}
+
+/// Analyzes the given status of the game, and returns the winner player if the criteria
+/// are met. Otherwise, `None` will be returned.
+fn get_winner(board: &HashMap<i32, BoardElement>) -> Option<BoardElement> {
     let winner_moves = vec![
         vec![1, 2, 3],
         vec![4, 5, 6],
@@ -88,11 +104,10 @@ fn get_winner(status: &HashMap<i32, String>) -> Option<Player> {
         vec![3, 5, 7],
     ];
 
-    let mut player_map: HashMap<Player, Vec<i32>> = HashMap::new();
-    for (board_number, player_symbol) in status {
-        if !player_symbol.eq(" ") {
-            let player = Player::from_symbol(player_symbol);
-            let moves = player_map.entry(player).or_insert(Vec::new());
+    let mut player_map: HashMap<BoardElement, Vec<i32>> = HashMap::new();
+    for (board_number, player) in board {
+        if *player != BoardElement::Empty {
+            let moves = player_map.entry(*player).or_insert(Vec::new());
             moves.push(*board_number);
         }
     }
